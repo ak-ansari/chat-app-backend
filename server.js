@@ -7,7 +7,6 @@ const server = http.createServer(app);
 
 const PORT = process.env.PORT || 3000;
 
-let chatters = {};
 
 server.listen(PORT, () => {
   console.log(`Listening on port ${PORT}`);
@@ -15,6 +14,11 @@ server.listen(PORT, () => {
 
 
 // Socket
+let chatters = {};
+let first;
+let second;
+let third;
+let allUsers={one:{},two:{},three:{}}
 const io = require("socket.io")(server, {
   cors: {
     origin: "*",
@@ -23,24 +27,50 @@ const io = require("socket.io")(server, {
 });
 
 io.on("connection", (socket) => {
-  socket.on("join", (user) => {
-    chatters[socket.id] = user;
-    let value = Object.values(chatters);
-    socket.broadcast.emit("join", chatters[socket.id]);
+  socket.on("join", (data) => {
+    if(data.room==='one'){
+      allUsers.one[socket.id]=data.user
+      
+    }
+    if(data.room==='two'){
+      allUsers.two[socket.id] = data.user;
+    }
+    if (data.room === "three") {
+      allUsers.three[socket.id] = data.user;
+    }
+   
+
+    chatters[socket.id] = data.user;
+    socket.join(data.room);
+
+    socket.broadcast.to(data.room).emit("join", chatters[socket.id]);
   });
 
   socket.on("message", (object) => {
-    socket.broadcast.emit("message", object);
+    socket.broadcast.to(object.room).emit("message", object);
   });
   socket.on("disconnect", (obj) => {
-    socket.broadcast.emit("left", chatters[socket.id]);
+    if(allUsers.one[socket.id]){
+      socket.broadcast.to('one').emit('left',chatters[socket.id]);
+    }
+    if (allUsers.two[socket.id]) {
+      socket.broadcast.to("two").emit("left", chatters[socket.id]);
+    }
+    if (allUsers.three[socket.id]) {
+      socket.broadcast.to("three").emit("left", chatters[socket.id]);
+    }
+    
     delete chatters[socket.id];
+    
+    delete allUsers.one[socket.id];
+    delete allUsers.two[socket.id];
+    delete allUsers.three[socket.id];
+    
   });
   socket.on("type", (value) => {
-    socket.broadcast.emit("type", value);
+    socket.broadcast.to(value.room).emit("type", value);
   });
 });
 app.get("/", (req, res) => {
-  res.add;
-  res.json(chatters);
+  res.json(allUsers);
 });
