@@ -1,4 +1,4 @@
-const fastify = require("fastify")({logger: true});
+const fastify = require("fastify")({logger: false});
 const fastifySocketIO = require("fastify-socket.io");
 const PORT = process.env.PORT || 3001;
 
@@ -25,6 +25,7 @@ fastify.ready(()=>{
   const io = fastify.io;
   
   io.on("connection", (socket) => {
+    console.log(`User connected ${socket.request.headers.origin}`)
     socket.on("join", (data) => {
       if(data.room==='one'){
         allUsers.one[socket.id]=data.user
